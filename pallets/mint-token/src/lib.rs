@@ -44,6 +44,7 @@ pub mod pallet {
 		type Balance: Member + Parameter + AtLeast32BitUnsigned + Default + Copy;
 
 		type MinBalance: Get<Self::Balance>;
+
 	}
 
 	#[pallet::pallet]
@@ -103,7 +104,6 @@ pub mod pallet {
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	#[pallet::metadata(T::AccountId="AccountId", T::Balance="Balance")]
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]

@@ -14,29 +14,16 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-use frame_support::pallet_prelude::*;
-use frame_system::pallet_prelude::*;
-use frame_support::Parameter;
-use frame_support::weight::{GetDispatchInfo, Pays};
-use sp_runtime::traits::Dispatchable;
-use frame_support::pallet_prelude::{DispatchResultWithPostInfo};
-use frame_support::dispatch::DispatchResult;
-
 #[frame_support::pallet]
 pub mod pallet {
-	pub use super::*;
+	use frame_support::pallet_prelude::*;
+	use frame_system::pallet_prelude::*;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
-		#[pallet::constant]
-		type MaxAdded: Get<u32>;
-
-		type ClearFrequency: Get<Self::BlockNumber>;
-
 	}
 
 	#[pallet::pallet]
@@ -51,10 +38,6 @@ pub mod pallet {
 	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn single_value)]
-	pub(super) type SingleValue<T:Config> = StorageValue<_, u32, ValueQuery>;
-
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -63,8 +46,6 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
-		Added(u32, u32, u32),
-		Cleared(u32)
 	}
 
 	// Errors inform users that something went wrong.
@@ -74,19 +55,6 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
-
-		Overflow
-	}
-
-	#[pallet::hooks]
-	impl<T:Config> Hooks<BlockNumberFor<T>> for Pallet<T>{
-		fn on_finalize(n: T::BlockNumber){
-			if(n%T::ClearFrequency::get()).is_zero(){
-				let current_value = <SingleValue<T>>::get();
-				<SingleValue<T>>::put(0u32);
-				Self::deposit_event(Event::Cleared(current_value));
-			}
-		}
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -129,20 +97,6 @@ pub mod pallet {
 					Ok(())
 				},
 			}
-		}
-
-		#[pallet::weight(1_000)]
-		fn add_value(origin: OriginFor<T>, val_to_add: u32)-> DispatchResultWithPostInfo {
-
-			let _ = ensure_signed(origin)?;
-			ensure!(val_to_add < T::MaxAdded::get() , "value must be <= maxium add account constant");
-			let c_val = SingleValue::<T>::get();
-			let result = c_val.checked_add(val_to_add).ok_or(Error::<T>::Overflow);
-
-			<SingleValue<T>>::put(result);
-			Self::deposit_event(Event::Added(c_val, val_to_add, result));
-
-			Ok(().into())
 		}
 	}
 }
